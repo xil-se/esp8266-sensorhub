@@ -1,0 +1,5 @@
+*.o
+*.bin
+local.mk
+wifi_config.h
+sensorhub
