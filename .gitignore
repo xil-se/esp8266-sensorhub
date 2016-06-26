@@ -1,5 +1,6 @@
 *.o
 *.bin
+*.d
 local.mk
 wifi_config.h
 sensorhub

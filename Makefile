@@ -41,7 +41,17 @@ clean:
 	$(Q)rm -f $(ELF)
 	$(Q) $(ECHO) [ RM ] $(src:.c=.o)
 	$(Q)rm -f $(src:.c=.o)
+	$(Q) $(ECHO) [ RM ] $(src:.c=.d)
+	$(Q)rm -f $(src:.c=.d)
 	$(Q) $(ECHO) [ RM ] $(ELF)-0x00000.bin
 	$(Q)rm -f $(ELF)-0x00000.bin
 	$(Q) $(ECHO) [ RM ] $(ELF)-0x40000.bin
 	$(Q)rm -f $(ELF)-0x40000.bin
+
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) -M $(CFLAGS) $< > $@.$$$$; \
+	sed 's,.*:,$(@:.d=.o):,' < $@.$$$$  > $@; \
+	rm -f $@.$$$$
+
+-include $(src:.c=.d)
