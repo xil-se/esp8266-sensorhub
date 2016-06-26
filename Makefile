@@ -18,7 +18,9 @@ SERIAL_PORT=--port $(PORT)
 endif
 
 ELF = sensorhub
-src = sensorhub.c
+src = sensorhub.c \
+      drivers/i2c_master.c \
+      drivers/bmp180.c
 
 OBJ = $(src:.c=.o)
 
