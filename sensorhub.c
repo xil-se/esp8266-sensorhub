@@ -16,6 +16,8 @@
 
 #define LISTENING_PORT 8081
 
+#define POLL_TIME   60000 // ms
+
 typedef struct {
     int16_t             temp;
     int32_t             pressure;
@@ -173,5 +175,5 @@ void ICACHE_FLASH_ATTR user_init(void)
     system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
 
     os_timer_setfn(&sensor.timer, (os_timer_func_t *)sensor_timer, NULL);
-    os_timer_arm(&sensor.timer, 1000, 1);
+    os_timer_arm(&sensor.timer, POLL_TIME, 1);
 }
