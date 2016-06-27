@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 
+#include "ets_sys.h"
 #include "osapi.h"
 
 #include "drivers/i2c_master.h"
@@ -45,6 +46,8 @@ static struct {
     int16_t     mc;
     int16_t     md;
     int32_t     b5;
+
+    i2c_data*   i2c;
 } bmp180_data  = {
     .initialized        = false,
 };
@@ -54,46 +57,46 @@ static int32_t read24_int(int reg, bool b24)
     uint8_t ack;
     uint8_t val[3] = {0};
 
-    i2c_master_start();
+    i2c_master_start(bmp180_data.i2c);
 
-    i2c_master_writeByte(I2C_ADDRESS_WRITE);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_WRITE);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_writeByte(reg);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, reg);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_stop();
+    i2c_master_stop(bmp180_data.i2c);
 
-    i2c_master_start();
+    i2c_master_start(bmp180_data.i2c);
 
-    i2c_master_writeByte(I2C_ADDRESS_READ);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_READ);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
     // MSB
-    val[0] = i2c_master_readByte();
-    i2c_master_send_ack();
+    val[0] = i2c_master_readByte(bmp180_data.i2c);
+    i2c_master_send_ack(bmp180_data.i2c);
 
     // LSB
-    val[1] = i2c_master_readByte();
+    val[1] = i2c_master_readByte(bmp180_data.i2c);
     if (b24) {
-        i2c_master_send_ack();
+        i2c_master_send_ack(bmp180_data.i2c);
 
         // XLSB
-        val[2] = i2c_master_readByte();
+        val[2] = i2c_master_readByte(bmp180_data.i2c);
     }
-    i2c_master_send_nack();
+    i2c_master_send_nack(bmp180_data.i2c);
 
 out:
-    i2c_master_stop();
+    i2c_master_stop(bmp180_data.i2c);
 
     if (b24)
         return (val[0] << 16) | (val[1] << 8) | val[2];
@@ -111,31 +114,31 @@ static int32_t read24(int reg)
     return read24_int(reg, true);
 }
 
-int16_t bmp180_read_temp_raw(void)
+int16_t ICACHE_FLASH_ATTR bmp180_read_temp_raw(void)
 {
     uint8_t ack;
 
-    i2c_master_start();
+    i2c_master_start(bmp180_data.i2c);
 
-    i2c_master_writeByte(I2C_ADDRESS_WRITE);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_WRITE);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_writeByte(BMP180_REG_CONTROL);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, BMP180_REG_CONTROL);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_writeByte(BMP180_TEMPERATURE);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, BMP180_TEMPERATURE);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_stop();
+    i2c_master_stop(bmp180_data.i2c);
 
     os_delay_us(BMP180_CONVERSION_TIME_TEMERATURE);
 
@@ -145,7 +148,7 @@ out:
     return 0;
 }
 
-int32_t bmp180_read_pressure_raw(uint8_t oss)
+int32_t ICACHE_FLASH_ATTR bmp180_read_pressure_raw(uint8_t oss)
 {
     uint8_t ack;
     int     reg;
@@ -172,28 +175,28 @@ int32_t bmp180_read_pressure_raw(uint8_t oss)
             return 0;
     }
 
-    i2c_master_start();
+    i2c_master_start(bmp180_data.i2c);
 
-    i2c_master_writeByte(I2C_ADDRESS_WRITE);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_WRITE);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_writeByte(BMP180_REG_CONTROL);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, BMP180_REG_CONTROL);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_writeByte(reg);
+    i2c_master_writeByte(bmp180_data.i2c, reg);
 
-    ack = i2c_master_getAck();
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         goto out;
     }
 
-    i2c_master_stop();
+    i2c_master_stop(bmp180_data.i2c);
 
     os_delay_us(delay);
 
@@ -203,7 +206,7 @@ out:
     return 0;
 }
 
-uint16_t bmp180_read_temp(void)
+uint16_t ICACHE_FLASH_ATTR bmp180_read_temp(void)
 {
     int16_t    temp;
     int32_t    x1;
@@ -225,7 +228,7 @@ uint16_t bmp180_read_temp(void)
     return temp;
 }
 
-int32_t bmp180_read_pressure(void)
+int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(void)
 {
     int32_t     pressure;
 
@@ -265,37 +268,39 @@ int32_t bmp180_read_pressure(void)
     return p;
 }
 
-bool bmp180_init(void)
+bool ICACHE_FLASH_ATTR bmp180_init(i2c_data* i2c)
 {
     uint8_t ack;
     uint8_t id = 0;
 
-    i2c_master_start();
+    bmp180_data.i2c = i2c;
 
-    i2c_master_writeByte(I2C_ADDRESS_WRITE);
-    ack = i2c_master_getAck();
+    i2c_master_start(bmp180_data.i2c);
+
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_WRITE);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         return false;
     }
 
-    i2c_master_writeByte(BMP180_REG_ID);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, BMP180_REG_ID);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         return false;
     }
 
-    i2c_master_stop();
+    i2c_master_stop(bmp180_data.i2c);
 
-    i2c_master_start();
+    i2c_master_start(bmp180_data.i2c);
 
-    i2c_master_writeByte(I2C_ADDRESS_READ);
-    ack = i2c_master_getAck();
+    i2c_master_writeByte(bmp180_data.i2c, I2C_ADDRESS_READ);
+    ack = i2c_master_getAck(bmp180_data.i2c);
     if (ack != 0) {
         return false;
     }
 
-    id = i2c_master_readByte();
-    i2c_master_send_nack();
+    id = i2c_master_readByte(bmp180_data.i2c);
+    i2c_master_send_nack(bmp180_data.i2c);
 
     if (id != BMP180_ID) {
         return false;

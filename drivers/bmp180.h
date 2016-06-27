@@ -3,7 +3,9 @@
 
 #include <stdbool.h>
 
-bool bmp180_init(void);
+#include "drivers/i2c_master.h"
+
+bool bmp180_init(i2c_data* i2c);
 uint16_t bmp180_read_temp(void);
 
 /* Pressure is dependent on a fairly updated temperature reading */

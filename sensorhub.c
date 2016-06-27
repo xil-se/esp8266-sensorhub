@@ -35,6 +35,7 @@ static struct {
     struct {
         bmp180_values       bmp180[1];
     } values;
+    i2c_data            i2c[1];
 } sensor;
 
 void ICACHE_FLASH_ATTR sensor_timer(void *arg)
@@ -166,10 +167,9 @@ void ICACHE_FLASH_ATTR user_init(void)
 
     start_network_services();
 
-    i2c_master_gpio_init();
-    i2c_master_init();
+    i2c_master_gpio_init(&sensor.i2c[0], 13, 12);
 
-    bmp180_init();
+    bmp180_init(&sensor.i2c[0]);
 
     system_os_task(sensor_task, SENSOR_TASK_PRIO, sensor.queue, SENSOR_TASK_QUEUE_SIZE);
     system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
