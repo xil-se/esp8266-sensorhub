@@ -18,6 +18,8 @@
 
 #define POLL_TIME   60000 // ms
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+
 typedef struct {
     int16_t             temp;
     int32_t             pressure;
@@ -35,7 +37,10 @@ static struct {
     struct {
         bmp180_values       bmp180[1];
     } values;
-    i2c_data            i2c[1];
+    struct {
+        i2c_data            i2c[1];
+        bmp180_data         bmp180[1];
+    } drivers;
 } sensor;
 
 void ICACHE_FLASH_ATTR sensor_timer(void *arg)
@@ -45,12 +50,17 @@ void ICACHE_FLASH_ATTR sensor_timer(void *arg)
 
 void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
 {
+    int     i;
     uint8_t ack;
 
     sensor.cnt++;
 
-    sensor.values.bmp180[0].temp = bmp180_read_temp();
-    sensor.values.bmp180[0].pressure = bmp180_read_pressure();
+    i = 0;
+    while (i < ARRAY_SIZE(sensor.values.bmp180)) {
+        sensor.values.bmp180[i].temp = bmp180_read_temp(&sensor.drivers.bmp180[i]);
+        sensor.values.bmp180[i].pressure = bmp180_read_pressure(&sensor.drivers.bmp180[i]);
+        i++;
+    }
 }
 
 void write_value(char* string, void* value, int size)
@@ -167,9 +177,11 @@ void ICACHE_FLASH_ATTR user_init(void)
 
     start_network_services();
 
-    i2c_master_gpio_init(&sensor.i2c[0], 13, 12);
+    // configure i2c busses
+    i2c_master_gpio_init(&sensor.drivers.i2c[0], 13, 12);
 
-    bmp180_init(&sensor.i2c[0]);
+    // map drivers to i2c busses
+    bmp180_init(&sensor.drivers.bmp180[0], &sensor.drivers.i2c[0]);
 
     system_os_task(sensor_task, SENSOR_TASK_PRIO, sensor.queue, SENSOR_TASK_QUEUE_SIZE);
     system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
