@@ -32,7 +32,7 @@
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS2  13500   // us
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS3  25500   // us
 
-static int32_t read24_int(bmp180_data* bmp180, int reg, bool b24)
+static int32_t ICACHE_FLASH_ATTR read24_int(bmp180_data* bmp180, int reg, bool b24)
 {
     uint8_t ack;
     uint8_t val[3] = {0};
@@ -84,12 +84,12 @@ out:
         return (val[0] << 8) | val[1];
 }
 
-static int16_t read16(bmp180_data* bmp180, int reg)
+static int16_t ICACHE_FLASH_ATTR read16(bmp180_data* bmp180, int reg)
 {
     return read24_int(bmp180, reg, false);
 }
 
-static int32_t read24(bmp180_data* bmp180, int reg)
+static int32_t ICACHE_FLASH_ATTR read24(bmp180_data* bmp180, int reg)
 {
     return read24_int(bmp180, reg, true);
 }

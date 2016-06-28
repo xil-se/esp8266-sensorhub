@@ -26,7 +26,7 @@
 #define I2C_MASTER_SDA_LOW_SCL_LOW(x)  \
     gpio_output_set(0, 1<<(x->gpio_sda) | 1<<(x->gpio_scl), 1<<(x->gpio_sda) | 1<<(x->gpio_scl), 0)
 
-static ICACHE_FLASH_ATTR uint32_t i2c_master_getGpioMux(uint8_t gpio)
+static uint32_t ICACHE_FLASH_ATTR i2c_master_getGpioMux(uint8_t gpio)
 {
     switch (gpio) {
         case 0:  return PERIPHS_IO_MUX_GPIO0_U;
@@ -50,7 +50,7 @@ static ICACHE_FLASH_ATTR uint32_t i2c_master_getGpioMux(uint8_t gpio)
     }
 }
 
-static ICACHE_FLASH_ATTR uint32_t i2c_master_getGpioFunc(uint8_t gpio)
+static uint32_t ICACHE_FLASH_ATTR i2c_master_getGpioFunc(uint8_t gpio)
 {
     switch (gpio) {
         // CLKOUT

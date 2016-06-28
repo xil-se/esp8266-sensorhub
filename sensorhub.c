@@ -43,12 +43,12 @@ static struct {
     } drivers;
 } sensor;
 
-void ICACHE_FLASH_ATTR sensor_timer(void *arg)
+static void ICACHE_FLASH_ATTR sensor_timer(void *arg)
 {
     system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
 }
 
-void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
+static void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
 {
     int     i;
 
@@ -60,7 +60,7 @@ void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
     }
 }
 
-void write_value(char* string, void* value, int size)
+static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
 {
     uint8_t* v = (uint8_t*)value;
     int i = 0;
@@ -161,7 +161,7 @@ static void ICACHE_FLASH_ATTR tcp_connect_cb(void* arg)
     espconn_disconnect(conn);
 }
 
-void ICACHE_FLASH_ATTR start_network_services(void)
+static void ICACHE_FLASH_ATTR start_network_services(void)
 {
     sint8   rc;
 
@@ -186,7 +186,7 @@ void ICACHE_FLASH_ATTR start_network_services(void)
     }
 }
 
-void ICACHE_FLASH_ATTR set_wifi_config(void)
+static void ICACHE_FLASH_ATTR set_wifi_config(void)
 {
     struct station_config config;
 
