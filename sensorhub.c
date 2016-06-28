@@ -51,15 +51,12 @@ void ICACHE_FLASH_ATTR sensor_timer(void *arg)
 void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
 {
     int     i;
-    uint8_t ack;
 
     sensor.cnt++;
 
-    i = 0;
-    while (i < ARRAY_SIZE(sensor.values.bmp180)) {
+    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
         sensor.values.bmp180[i].temp = bmp180_read_temp(&sensor.drivers.bmp180[i]);
         sensor.values.bmp180[i].pressure = bmp180_read_pressure(&sensor.drivers.bmp180[i]);
-        i++;
     }
 }
 
@@ -112,19 +109,54 @@ void write_value(char* string, void* value, int size)
     }
 }
 
-void tcp_connect_cb(void* arg)
+static void ICACHE_FLASH_ATTR add_value(char* d, int* index, int i, const char* string, void* value, int size)
+{
+    int length;
+
+    length = os_strlen(string);
+    memcpy(&d[*index], string, length);
+    (*index) += length;
+
+    d[*index] = '.';
+    (*index)++;
+
+    length = sizeof(uint8_t);
+    write_value(&d[*index], &i, length);
+    (*index) += length*2;
+
+    d[*index] = ':';
+    (*index)++;
+
+    d[*index] = ' ';
+    (*index)++;
+
+    length = size;
+    write_value(&d[*index], value, length);
+    (*index) += length*2;
+
+    d[*index] = '\n';
+    (*index)++;
+}
+
+static void ICACHE_FLASH_ATTR tcp_connect_cb(void* arg)
 {
     struct espconn* conn;
 
-    char d[48] = "temp.0:     \n"
-                 "pressure.0:         \n";
+    int length;
+    int index;
+    uint8_t i;
+    char d[128] = "";
 
-    write_value(&d[8], &sensor.values.bmp180[0].temp, sizeof(uint16_t));
-    write_value(&d[25], &sensor.values.bmp180[0].pressure, sizeof(int32_t));
+    index = 0;
+
+    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
+        add_value(d, &index, i, "temp", &sensor.values.bmp180[i].temp, sizeof(uint16_t));
+        add_value(d, &index, i, "pressure", &sensor.values.bmp180[i].pressure, sizeof(int32_t));
+    }
 
     conn = (struct espconn*)arg;
 
-    espconn_send(conn, d, os_strlen(d));
+    espconn_send(conn, d, index);
 
     espconn_disconnect(conn);
 }
@@ -183,9 +215,11 @@ void ICACHE_FLASH_ATTR user_init(void)
     // map drivers to i2c busses
     bmp180_init(&sensor.drivers.bmp180[0], &sensor.drivers.i2c[0]);
 
+    // task for sensors
     system_os_task(sensor_task, SENSOR_TASK_PRIO, sensor.queue, SENSOR_TASK_QUEUE_SIZE);
     system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
 
+    // timer for sensors
     os_timer_setfn(&sensor.timer, (os_timer_func_t *)sensor_timer, NULL);
     os_timer_arm(&sensor.timer, POLL_TIME, 1);
 }
