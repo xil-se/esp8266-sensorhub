@@ -12,6 +12,8 @@ VERBOSE = @
 ECHO = echo
 CC = xtensa-lx106-elf-gcc
 CFLAGS = -I. -mlongcalls
+CFLAGS += -DICACHE_FLASH
+CFLAGS += -Os
 LDLIBS = -nostdlib -Wl,--start-group -lmain -lnet80211 -lwpa -llwip -lpp -lphy -Wl,--end-group -lgcc
 LDFLAGS = -Teagle.app.v6.ld
 
@@ -49,6 +51,7 @@ clean:
 	$(Q)rm -f $(src:.c=.o)
 	$(Q) $(ECHO) [ RM ] $(src:.c=.d)
 	$(Q)rm -f $(src:.c=.d)
+	$(Q)rm -f $(src:.c=.d.????)
 	$(Q) $(ECHO) [ RM ] $(ELF)-0x00000.bin
 	$(Q)rm -f $(ELF)-0x00000.bin
 	$(Q) $(ECHO) [ RM ] $(ELF)-0x40000.bin

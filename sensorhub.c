@@ -15,18 +15,21 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 
 #include "gpio.h"
 
-#include "wifi_config.h"
+#include "network_config.h"
 
 #include "drivers/bmp180.h"
 
 #define SENSOR_TASK_PRIO           2
 #define SENSOR_TASK_QUEUE_SIZE     1
 
-#define LISTENING_PORT 8081
+static const uint8_t RECEIVER[4] = RECEIVER_IP;
 
 #define POLL_TIME   60000 // ms
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+
+#define NETWORK_MODE_POLLING
+//#define NETWORK_MODE_PUSHING
 
 typedef struct {
     int16_t             temp;
@@ -34,8 +37,10 @@ typedef struct {
 } bmp180_values;
 
 static struct {
-    struct espconn      conn;
+    struct espconn      conn_tcp;
+    struct espconn      conn_udp;
     esp_tcp             tcp;
+    esp_udp             udp;
 } network;
 
 static struct {
@@ -50,23 +55,6 @@ static struct {
         bmp180_data         bmp180[1];
     } drivers;
 } sensor;
-
-static void ICACHE_FLASH_ATTR sensor_timer(void *arg)
-{
-    system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
-}
-
-static void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
-{
-    int     i;
-
-    sensor.cnt++;
-
-    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
-        sensor.values.bmp180[i].temp = bmp180_read_temp(&sensor.drivers.bmp180[i]);
-        sensor.values.bmp180[i].pressure = bmp180_read_pressure(&sensor.drivers.bmp180[i]);
-    }
-}
 
 static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
 {
@@ -117,33 +105,80 @@ static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
     }
 }
 
-static void ICACHE_FLASH_ATTR add_value(char* d, int* index, int i, const char* string, void* value, int size)
+static void ICACHE_FLASH_ATTR add_value(char* data, int* index, int i, const char* string, void* value, int size)
 {
     int length;
 
     length = os_strlen(string);
-    memcpy(&d[*index], string, length);
+    memcpy(&data[*index], string, length);
     (*index) += length;
 
-    d[*index] = '.';
+    data[*index] = '.';
     (*index)++;
 
     length = sizeof(uint8_t);
-    write_value(&d[*index], &i, length);
+    write_value(&data[*index], &i, length);
     (*index) += length*2;
 
-    d[*index] = ':';
+    data[*index] = ':';
     (*index)++;
 
-    d[*index] = ' ';
+    data[*index] = ' ';
     (*index)++;
 
     length = size;
-    write_value(&d[*index], value, length);
+    write_value(&data[*index], value, length);
     (*index) += length*2;
 
-    d[*index] = '\n';
+    data[*index] = '\n';
     (*index)++;
+}
+
+static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
+{
+    int index;
+    uint8_t i;
+
+    index = 0;
+
+    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
+        add_value(data, &index, i, "temp", &sensor.values.bmp180[i].temp, sizeof(uint16_t));
+        add_value(data, &index, i, "pressure", &sensor.values.bmp180[i].pressure, sizeof(int32_t));
+    }
+
+    *length = index;
+}
+
+void ICACHE_FLASH_ATTR send_data(void)
+{
+    int length;
+    char data[128] = "";
+
+    build_result(data, &length);
+
+    // Set ip
+    os_memcpy(network.conn_udp.proto.udp->remote_ip, RECEIVER, sizeof(network.conn_udp.proto.udp->remote_ip));
+    // Set port
+    network.conn_udp.proto.udp->remote_port = RECEIVER_PORT;
+
+    espconn_sendto(&network.conn_udp, data, length);
+}
+
+void ICACHE_FLASH_ATTR init_udp(void)
+{
+    network.conn_udp.proto.udp = &network.udp;
+
+    // TCP connection
+    network.conn_udp.type = ESPCONN_UDP;
+    // No state
+    network.conn_udp.state = ESPCONN_NONE;
+    // Set ip
+    os_memcpy(network.conn_udp.proto.udp->remote_ip, RECEIVER, sizeof(network.conn_udp.proto.udp->remote_ip));
+    // Set port
+    network.conn_udp.proto.udp->remote_port = RECEIVER_PORT;
+    network.conn_udp.proto.udp->local_port = espconn_port();
+
+    espconn_create(&network.conn_udp);
 }
 
 static void ICACHE_FLASH_ATTR tcp_connect_cb(void* arg)
@@ -151,20 +186,13 @@ static void ICACHE_FLASH_ATTR tcp_connect_cb(void* arg)
     struct espconn* conn;
 
     int length;
-    int index;
-    uint8_t i;
-    char d[128] = "";
+    char data[128] = "";
 
-    index = 0;
-
-    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
-        add_value(d, &index, i, "temp", &sensor.values.bmp180[i].temp, sizeof(uint16_t));
-        add_value(d, &index, i, "pressure", &sensor.values.bmp180[i].pressure, sizeof(int32_t));
-    }
+    build_result(data, &length);
 
     conn = (struct espconn*)arg;
 
-    espconn_send(conn, d, index);
+    espconn_send(conn, data, length);
 
     espconn_disconnect(conn);
 }
@@ -173,21 +201,21 @@ static void ICACHE_FLASH_ATTR start_network_services(void)
 {
     sint8   rc;
 
-    network.conn.proto.tcp = &network.tcp;
+    network.conn_tcp.proto.tcp = &network.tcp;
 
     // TCP connection
-    network.conn.type = ESPCONN_TCP;
+    network.conn_tcp.type = ESPCONN_TCP;
     // No state
-    network.conn.state = ESPCONN_NONE;
+    network.conn_tcp.state = ESPCONN_NONE;
     // Set port
-    network.conn.proto.tcp->local_port = LISTENING_PORT;
+    network.conn_tcp.proto.tcp->local_port = LISTENING_PORT;
 
     // Register callbacks
-    espconn_regist_connectcb(&network.conn, tcp_connect_cb);
-    // espconn_regist_reconcb(&network.conn, tcp_reconnect_cb);
-    // espconn_regist_disconcb(&network.conn, tcp_disconnect_cb);
+    espconn_regist_connectcb(&network.conn_tcp, tcp_connect_cb);
+    // espconn_regist_reconcb(&network.conn_tcp, tcp_reconnect_cb);
+    // espconn_regist_disconcb(&network.conn_tcp, tcp_disconnect_cb);
 
-    rc = espconn_accept(&network.conn);
+    rc = espconn_accept(&network.conn_tcp);
     if (rc != ESPCONN_OK) {
         // handle error
         os_printf("Error opening listening socket: %d\n", rc);
@@ -208,6 +236,27 @@ static void ICACHE_FLASH_ATTR set_wifi_config(void)
     wifi_station_set_config(&config);
 }
 
+static void ICACHE_FLASH_ATTR sensor_timer(void *arg)
+{
+    system_os_post(SENSOR_TASK_PRIO, 0, (os_param_t)NULL);
+}
+
+static void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
+{
+    int     i;
+
+    sensor.cnt++;
+
+    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
+        sensor.values.bmp180[i].temp = bmp180_read_temp(&sensor.drivers.bmp180[i]);
+        sensor.values.bmp180[i].pressure = bmp180_read_pressure(&sensor.drivers.bmp180[i]);
+    }
+
+#ifdef NETWORK_MODE_PUSHING
+    send_data();
+#endif // NETWORK_MODE_PUSHING
+}
+
 void ICACHE_FLASH_ATTR user_init(void)
 {
     os_memset(&sensor, 0, sizeof(sensor));
@@ -215,7 +264,13 @@ void ICACHE_FLASH_ATTR user_init(void)
     wifi_set_opmode(STATION_MODE);
     set_wifi_config();
 
+#ifdef NETWORK_MODE_POLLING
     start_network_services();
+#endif // NETWORK_MODE_POLLING
+
+#ifdef NETWORK_MODE_PUSHING
+    init_udp();
+#endif // NETWORK_MODE_PUSHING
 
     // configure i2c busses
     i2c_master_gpio_init(&sensor.drivers.i2c[0], 13, 12);
@@ -230,4 +285,8 @@ void ICACHE_FLASH_ATTR user_init(void)
     // timer for sensors
     os_timer_setfn(&sensor.timer, (os_timer_func_t *)sensor_timer, NULL);
     os_timer_arm(&sensor.timer, POLL_TIME, 1);
+
+    system_set_os_print(1);
+    system_print_meminfo();
+    system_set_os_print(0);
 }
