@@ -73,7 +73,7 @@ static uint32_t ICACHE_FLASH_ATTR gpio_func(uint8_t gpio)
 static void ICACHE_FLASH_ATTR write_clock(int pin)
 {
     GPIO_OUTPUT_SET(pin, 1);
-    os_delay_us(10);
+//    os_delay_us(10);
     GPIO_OUTPUT_SET(pin, 0);
 }
 
