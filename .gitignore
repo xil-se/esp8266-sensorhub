@@ -2,5 +2,5 @@
 *.bin
 *.d
 local.mk
-wifi_config.h
+network_config.h
 sensorhub
