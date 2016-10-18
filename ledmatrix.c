@@ -15,6 +15,7 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 #include "espconn.h"
 
 #include "drivers/ws2801.h"
+#include "utils/rgbhsv.h"
 
 #define LEDMATRIX_TASK_PRIO           2
 #define LEDMATRIX_TASK_QUEUE_SIZE     1
@@ -33,18 +34,20 @@ static struct {
 
 static void ICACHE_FLASH_ATTR set_values_ws2801(void)
 {
+    static int t = 0;
     int i;
-    int j;
 
-    ws2801_data_t*  ws2801;
+    ws2801_data_t* ws2801;
     ws2801 = ledmatrix.values.ws2801;
 
-    for (i = 0; i < ws2801->chains; i++) {
-        for (j = 0; j < ws2801->chain[i].leds; j++) {
-            ws2801->chain[i].led[j].c.c = ws2801->chain[i].led[j].c.c << 8;
-            ws2801->chain[i].led[j].c.c |= ((ws2801->chain[i].led[j].c.c >> 24) & 0xff);
-            ws2801->chain[i].led[j].c.c &= 0x00ffffff;
-        }
+    t++;
+
+    for (i = 0; i < ws2801->chain[0].leds; i++) {
+        int *r = &ws2801->chain[0].led[i].c.argb.r;
+        int *g = &ws2801->chain[0].led[i].c.argb.g;
+        int *b = &ws2801->chain[0].led[i].c.argb.b;
+        uint8_t h = (i + t) & 0xff;
+        hsvtorgb(r, g, b, h, 255, 255);
     }
 
     ws2801_write(ledmatrix.values.ws2801);
@@ -64,9 +67,10 @@ static void ICACHE_FLASH_ATTR ledmatrix_task(os_event_t* event)
 
 static void ICACHE_FLASH_ATTR setup_ws2801(void)
 {
+
     int i;
     int j;
-    int chains = 1; //6;
+    int chains = 1;
     ws2801_data_t*  ws2801;
 
     ws2801 = (void*)os_malloc(sizeof(*ws2801) + sizeof(ws2801->chain[0]) * chains);
@@ -75,13 +79,6 @@ static void ICACHE_FLASH_ATTR setup_ws2801(void)
     for (i = 0; i < ws2801->chains; i++) {
         ws2801->chain[i].leds = 100;
         ws2801->chain[i].led = (void*)os_malloc(sizeof(ws2801->chain[i].led[0]) * ws2801->chain[i].leds);
-
-        for (j = 0; j < ws2801->chain[i].leds; j++) {
-            ws2801->chain[i].led[j].c.c = 0x00008080 << (((i+j)*8)%24);
-            ws2801->chain[i].led[j].c.c |= ((ws2801->chain[i].led[j].c.c >> 24) & 0xff);
-            ws2801->chain[i].led[j].c.c &= 0x00ffffff;
-        }
-
         ws2801->chain[i].pin_clock = 14;
     }
 
@@ -95,8 +92,7 @@ static void ICACHE_FLASH_ATTR setup_ws2801(void)
     ledmatrix.values.ws2801 = ws2801;
 
     ws2801_init(ledmatrix.values.ws2801);
-    ws2801_write(ledmatrix.values.ws2801);
-}
+    ws2801_write(ledmatrix.values.ws2801);}
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
