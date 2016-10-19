@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
     uint8_t         pin_clock;
     uint8_t         pin_data;
-    uint8_t         leds;
+    uint16_t        leds;
     ws2801_color_t* led;
 } ws2801_chain_t;
 
