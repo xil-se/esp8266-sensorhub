@@ -43,11 +43,32 @@ static void ICACHE_FLASH_ATTR set_values_ws2801(void)
     t++;
 
     for (i = 0; i < ws2801->chain[0].leds; i++) {
-        int *r = &ws2801->chain[0].led[i].c.argb.r;
-        int *g = &ws2801->chain[0].led[i].c.argb.g;
-        int *b = &ws2801->chain[0].led[i].c.argb.b;
-        uint8_t h = (i + t) & 0xff;
+        uint8_t *r = &ws2801->chain[0].led[i].c.argb.r;
+        uint8_t *g = &ws2801->chain[0].led[i].c.argb.g;
+        uint8_t *b = &ws2801->chain[0].led[i].c.argb.b;
+        uint8_t *a = &ws2801->chain[0].led[i].c.argb.a;
+        uint8_t h = (i*4 + t/2) & 0xff;
         hsvtorgb(r, g, b, h, 255, 255);
+/*
+        uint8_t c = t % 128;
+        switch ((t/128)%3) {
+            case 0:
+                *r = c;
+                *g = 0;
+                *b = 0;
+                break;
+            case 1:
+                *r = 0;
+                *g = c;
+                *b = 0;
+                break;
+            case 2:
+                *r = 0;
+                *g = 0;
+                *b = c;
+                break;
+        }
+*/
     }
 
     ws2801_write(ledmatrix.values.ws2801);
