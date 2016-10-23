@@ -31,7 +31,7 @@ $(ELF)-0x00000.bin: $(ELF)
 	$(Q) $(CC) -c -o $@ $< $(CFLAGS)
 
 flash: $(ELF)-0x00000.bin
-	$(Q)python2 `which esptool.py` $(SERIAL_PORT) --baud 921600 write_flash 0 $(ELF)-0x00000.bin 0x40000 $(ELF)-0x40000.bin
+	$(Q)python2 `which esptool.py` $(SERIAL_PORT) $(BAUDRATE) write_flash 0 $(ELF)-0x00000.bin 0x40000 $(ELF)-0x40000.bin
 
 clean:
 	$(Q) $(ECHO) [ RM ] $(ELF)
