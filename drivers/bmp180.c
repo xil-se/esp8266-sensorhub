@@ -38,6 +38,14 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS2  13500   // us
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS3  25500   // us
 
+#define BMP180_PRESSURE_SAMPLING_ACCURACY_ULTRA_LOW_POWER       0
+#define BMP180_PRESSURE_SAMPLING_ACCURACY_STANDARD              1
+#define BMP180_PRESSURE_SAMPLING_ACCURACY_HIGH_RESOLUTION       2
+#define BMP180_PRESSURE_SAMPLING_ACCURACY_ULTRA_HIGH_RESOLUTION 3
+
+// Pressure sampling accuracy mode to use
+#define BMP180_PRESSURE_SAMPLING_MODE BMP180_PRESSURE_SAMPLING_ACCURACY_HIGH_RESOLUTION
+
 static int32_t ICACHE_FLASH_ATTR read24_int(bmp180_data* bmp180, int reg, bool b24)
 {
     uint8_t ack;
@@ -176,7 +184,6 @@ int32_t ICACHE_FLASH_ATTR bmp180_read_pressure_raw(bmp180_data* bmp180, uint8_t 
     }
 
     i2c_master_writeByte(bmp180->i2c, reg);
-
     ack = i2c_master_getAck(bmp180->i2c);
     if (ack != 0) {
         goto out;
@@ -227,7 +234,7 @@ int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(bmp180_data* bmp180)
     uint32_t    b7;
     int32_t     p;
 
-    uint8_t     oss = 0;
+    uint8_t     oss = BMP180_PRESSURE_SAMPLING_MODE;
 
     if (!bmp180->initilized) {
         return 0;
