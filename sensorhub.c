@@ -19,12 +19,15 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 
 #include "drivers/bmp180.h"
 
-#define SENSOR_TASK_PRIO           2
-#define SENSOR_TASK_QUEUE_SIZE     1
+#define SENSORHUB_VERSION           1
+
+#define SENSOR_TASK_PRIO            2
+#define SENSOR_TASK_QUEUE_SIZE      1
 
 static const uint8_t RECEIVER[4] = RECEIVER_IP;
 
 #define POLL_TIME   60000 // ms
+#define MAX_RESPONSE_SIZE           256 // bytes
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -105,7 +108,7 @@ static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
     }
 }
 
-static void ICACHE_FLASH_ATTR add_value(char* data, int* index, int i, const char* string, void* value, int size)
+static void ICACHE_FLASH_ATTR add_value(char* data, uint16_t* index, int i, const char* string, void* value, int size)
 {
     int length;
 
@@ -136,14 +139,29 @@ static void ICACHE_FLASH_ATTR add_value(char* data, int* index, int i, const cha
 
 static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 {
-    int index;
+    uint16_t index;
     uint8_t i;
+    uint16_t version;
 
     index = 0;
+
+    version = SENSORHUB_VERSION;
+    add_value(data, &index, 0, "version", &version, sizeof(version));
+
+    for (i = 0; i < ARRAY_SIZE(sensor.drivers.i2c); i++) {
+        add_value(data, &index, i, "sda", &sensor.drivers.i2c[i].gpio_sda, sizeof(uint8_t));
+        add_value(data, &index, i, "scl", &sensor.drivers.i2c[i].gpio_scl, sizeof(uint8_t));
+    }
 
     for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
         add_value(data, &index, i, "temp", &sensor.values.bmp180[i].temp, sizeof(uint16_t));
         add_value(data, &index, i, "pressure", &sensor.values.bmp180[i].pressure, sizeof(int32_t));
+    }
+
+    if (index > *length)
+    {
+        index = 0;
+        add_value(data, &index, 0, "ERROR: Buffer too small", length, sizeof(*length));
     }
 
     *length = index;
@@ -152,8 +170,9 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 void ICACHE_FLASH_ATTR send_data(void)
 {
     int length;
-    char data[128] = "";
+    static char data[MAX_RESPONSE_SIZE] = "";
 
+    length = sizeof(data);
     build_result(data, &length);
 
     // Set ip
@@ -186,8 +205,9 @@ static void ICACHE_FLASH_ATTR tcp_connect_cb(void* arg)
     struct espconn* conn;
 
     int length;
-    char data[128] = "";
+    static char data[MAX_RESPONSE_SIZE] = "";
 
+    length = sizeof(data);
     build_result(data, &length);
 
     conn = (struct espconn*)arg;
