@@ -19,7 +19,7 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 
 #include "drivers/bmp180.h"
 
-#define SENSORHUB_VERSION           1
+#define SENSORHUB_VERSION           2
 
 #define SENSOR_TASK_PRIO            2
 #define SENSOR_TASK_QUEUE_SIZE      1
