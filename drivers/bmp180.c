@@ -199,24 +199,24 @@ out:
     return 0;
 }
 
-uint16_t ICACHE_FLASH_ATTR bmp180_read_temp(bmp180_data* bmp180)
+int16_t ICACHE_FLASH_ATTR bmp180_read_temp(bmp180_data* bmp180)
 {
+    uint16_t   temp_raw;
     int16_t    temp;
     int32_t    x1;
     int32_t    x2;
-    int32_t    b5;
 
     if (!bmp180->initilized) {
         return 0;
     }
 
-    temp = bmp180_read_temp_raw(bmp180);
+    temp_raw = bmp180_read_temp_raw(bmp180);
 
-    x1 = (temp - bmp180->ac6) * bmp180->ac5 / (2<<14);
+    x1 = (temp_raw - bmp180->ac6) * bmp180->ac5 / (2<<14);
     x2 = bmp180->mc * (2<<10) / (x1 + bmp180->md);
-    b5 = x1 + x2;
+    bmp180->b5 = x1 + x2;
 
-    temp = (b5 + 8) / (2<<3);
+    temp = (bmp180->b5 + 8) / (2<<3);
 
     return temp;
 }
