@@ -17,6 +17,8 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 
 #include "network_config.h"
 
+#include "drivers/drivers.h"
+
 #include "drivers/bmp180.h"
 
 #define SENSORHUB_VERSION           2
@@ -34,6 +36,7 @@ static const uint8_t RECEIVER[4] = RECEIVER_IP;
 #define NETWORK_MODE_POLLING
 //#define NETWORK_MODE_PUSHING
 
+
 typedef struct {
     int16_t             temp;
     int32_t             pressure;
@@ -46,6 +49,10 @@ static struct {
     esp_udp             udp;
 } network;
 
+static driver_bus       driver_buses[] = {
+    { .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, .init = i2c_master_init },
+};
+
 static struct {
     int                 cnt;
     os_event_t          queue[SENSOR_TASK_QUEUE_SIZE];
@@ -54,7 +61,6 @@ static struct {
         bmp180_values       bmp180[1];
     } values;
     struct {
-        i2c_data            i2c[1];
         bmp180_data         bmp180[1];
     } drivers;
 } sensor;
@@ -148,9 +154,9 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
     version = SENSORHUB_VERSION;
     add_value(data, &index, 0, "version", &version, sizeof(version));
 
-    for (i = 0; i < ARRAY_SIZE(sensor.drivers.i2c); i++) {
-        add_value(data, &index, i, "sda", &sensor.drivers.i2c[i].gpio_sda, sizeof(uint8_t));
-        add_value(data, &index, i, "scl", &sensor.drivers.i2c[i].gpio_scl, sizeof(uint8_t));
+    for (i = 0; i < ARRAY_SIZE(driver_buses); i++) {
+        add_value(data, &index, i, "sda", &driver_buses[i].params.i2c.gpio_sda, sizeof(uint8_t));
+        add_value(data, &index, i, "scl", &driver_buses[i].params.i2c.gpio_scl, sizeof(uint8_t));
     }
 
     for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
@@ -279,6 +285,8 @@ static void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
+    int     i;
+
     os_memset(&sensor, 0, sizeof(sensor));
 
     wifi_set_opmode(STATION_MODE);
@@ -292,11 +300,13 @@ void ICACHE_FLASH_ATTR user_init(void)
     init_udp();
 #endif // NETWORK_MODE_PUSHING
 
-    // configure i2c busses
-    i2c_master_gpio_init(&sensor.drivers.i2c[0], 13, 12);
+    // configure busses
+    for (i = 0; i < ARRAY_SIZE(driver_buses); i++) {
+        driver_buses[i].init(&driver_buses[i].params);
+    }
 
     // map drivers to i2c busses
-    bmp180_init(&sensor.drivers.bmp180[0], &sensor.drivers.i2c[0]);
+    bmp180_init(&sensor.drivers.bmp180[0], &driver_buses[0].params.i2c);
 
     // task for sensors
     system_os_task(sensor_task, SENSOR_TASK_PRIO, sensor.queue, SENSOR_TASK_QUEUE_SIZE);

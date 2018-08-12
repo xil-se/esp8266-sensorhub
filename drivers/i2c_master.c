@@ -126,13 +126,13 @@ i2c_master_getDC(i2c_data* i2c)
 }
 
 /******************************************************************************
- * FunctionName : i2c_master_init
+ * FunctionName : i2c_master_init_internal
  * Description  : initilize I2C bus to enable i2c operations
  * Parameters   : NONE
  * Returns      : NONE
 *******************************************************************************/
 static void ICACHE_FLASH_ATTR
-i2c_master_init(i2c_data* i2c)
+i2c_master_init_internal(i2c_data* i2c)
 {
     uint8_t i;
 
@@ -165,7 +165,7 @@ i2c_master_init(i2c_data* i2c)
  * Parameters   : NONE
  * Returns      : NONE
 *******************************************************************************/
-void ICACHE_FLASH_ATTR
+static void ICACHE_FLASH_ATTR
 i2c_master_gpio_init(i2c_data* i2c, uint8_t sda, uint8_t scl)
 {
     i2c->gpio_sda = sda;
@@ -189,7 +189,21 @@ i2c_master_gpio_init(i2c_data* i2c, uint8_t sda, uint8_t scl)
     ETS_GPIO_INTR_ENABLE() ;
 //    ETS_INTR_UNLOCK();
 
-    i2c_master_init(i2c);
+    i2c_master_init_internal(i2c);
+}
+
+/******************************************************************************
+ * FunctionName : i2c_master_init
+ * Description  : initialize i2c and gpios
+ * Parameters   : params
+ * Returns      : NONE
+*******************************************************************************/
+void ICACHE_FLASH_ATTR
+i2c_master_init(driver_bus_params* params)
+{
+    i2c_data* i2c = &params->i2c;
+
+    i2c_master_gpio_init(i2c, i2c->gpio_sda, i2c->gpio_scl);
 }
 
 /******************************************************************************

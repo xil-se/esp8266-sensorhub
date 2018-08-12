@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+// Global structs
+
 typedef struct {
     uint8_t gpio_sda;
     uint8_t gpio_scl;
@@ -10,7 +12,9 @@ typedef struct {
     uint8_t scl_last;
 } i2c_data;
 
-void i2c_master_gpio_init(i2c_data* i2c, uint8_t sda, uint8_t scl);
+#include "drivers/drivers.h"
+
+void i2c_master_init(driver_bus_params* params);
 
 #define i2c_master_wait    os_delay_us
 void i2c_master_stop(i2c_data* i2c);
