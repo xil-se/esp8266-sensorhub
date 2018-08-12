@@ -19,8 +19,6 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 
 #include "drivers/drivers.h"
 
-#include "drivers/bmp180.h"
-
 #define SENSORHUB_VERSION           2
 
 #define SENSOR_TASK_PRIO            2
@@ -36,12 +34,6 @@ static const uint8_t RECEIVER[4] = RECEIVER_IP;
 #define NETWORK_MODE_POLLING
 //#define NETWORK_MODE_PUSHING
 
-
-typedef struct {
-    int16_t             temp;
-    int32_t             pressure;
-} bmp180_values;
-
 static struct {
     struct espconn      conn_tcp;
     struct espconn      conn_udp;
@@ -50,19 +42,18 @@ static struct {
 } network;
 
 static driver_bus       driver_buses[] = {
-    { .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, .init = i2c_master_init },
+    { .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, .init = i2c_master_init, },
+    { .params.i2c.gpio_sda =  5, .params.i2c.gpio_scl =  4, .init = i2c_master_init, },
+};
+
+static driver           driver_sensors[] = {
+    { .bus = &driver_buses[0], .sensor = &sensor_bmp180, },
 };
 
 static struct {
     int                 cnt;
     os_event_t          queue[SENSOR_TASK_QUEUE_SIZE];
     volatile os_timer_t timer;
-    struct {
-        bmp180_values       bmp180[1];
-    } values;
-    struct {
-        bmp180_data         bmp180[1];
-    } drivers;
 } sensor;
 
 static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
@@ -159,9 +150,9 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
         add_value(data, &index, i, "scl", &driver_buses[i].params.i2c.gpio_scl, sizeof(uint8_t));
     }
 
-    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
-        add_value(data, &index, i, "temp", &sensor.values.bmp180[i].temp, sizeof(uint16_t));
-        add_value(data, &index, i, "pressure", &sensor.values.bmp180[i].pressure, sizeof(int32_t));
+    for (i = 0; i < ARRAY_SIZE(driver_sensors); i++) {
+        add_value(data, &index, i, "temp", &driver_sensors[i].params.bmp180.temperature, sizeof(uint16_t));
+        add_value(data, &index, i, "pressure", &driver_sensors[i].params.bmp180.pressure, sizeof(int32_t));
     }
 
     if (index > *length)
@@ -273,9 +264,9 @@ static void ICACHE_FLASH_ATTR sensor_task(os_event_t* event)
 
     sensor.cnt++;
 
-    for (i = 0; i < ARRAY_SIZE(sensor.values.bmp180); i++) {
-        sensor.values.bmp180[i].temp = bmp180_read_temp(&sensor.drivers.bmp180[i]);
-        sensor.values.bmp180[i].pressure = bmp180_read_pressure(&sensor.drivers.bmp180[i]);
+    // Read all sensors
+    for (i = 0; i < ARRAY_SIZE(driver_sensors); i++) {
+        driver_sensors[i].sensor->read(&driver_sensors[i].params);
     }
 
 #ifdef NETWORK_MODE_PUSHING
@@ -305,8 +296,10 @@ void ICACHE_FLASH_ATTR user_init(void)
         driver_buses[i].init(&driver_buses[i].params);
     }
 
-    // map drivers to i2c busses
-    bmp180_init(&sensor.drivers.bmp180[0], &driver_buses[0].params.i2c);
+    // initialize sensors
+    for (i = 0; i < ARRAY_SIZE(driver_sensors); i++) {
+        driver_sensors[i].sensor->init(&driver_sensors[i].params, driver_sensors[i].bus);
+    }
 
     // task for sensors
     system_os_task(sensor_task, SENSOR_TASK_PRIO, sensor.queue, SENSOR_TASK_QUEUE_SIZE);

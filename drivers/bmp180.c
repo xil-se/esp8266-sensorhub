@@ -46,6 +46,11 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 // Pressure sampling accuracy mode to use
 #define BMP180_PRESSURE_SAMPLING_MODE BMP180_PRESSURE_SAMPLING_ACCURACY_HIGH_RESOLUTION
 
+const driver_sensor const sensor_bmp180 = {
+    .init       = bmp180_init,
+    .read       = bmp180_read,
+};
+
 static int32_t ICACHE_FLASH_ATTR read24_int(bmp180_data* bmp180, int reg, bool b24)
 {
     uint8_t ack;
@@ -199,7 +204,7 @@ out:
     return 0;
 }
 
-int16_t ICACHE_FLASH_ATTR bmp180_read_temp(bmp180_data* bmp180)
+static int16_t ICACHE_FLASH_ATTR bmp180_read_temp(bmp180_data* bmp180)
 {
     uint16_t   temp_raw;
     int16_t    temp;
@@ -221,7 +226,7 @@ int16_t ICACHE_FLASH_ATTR bmp180_read_temp(bmp180_data* bmp180)
     return temp;
 }
 
-int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(bmp180_data* bmp180)
+static int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(bmp180_data* bmp180)
 {
     int32_t     pressure;
 
@@ -261,10 +266,23 @@ int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(bmp180_data* bmp180)
     return p;
 }
 
-bool ICACHE_FLASH_ATTR bmp180_init(bmp180_data* bmp180, i2c_data* i2c)
+bool ICACHE_FLASH_ATTR bmp180_read(driver_params* params)
 {
-    uint8_t ack;
-    uint8_t id = 0;
+    bmp180_data*    bmp180 = &params->bmp180;
+
+    bmp180->temperature = bmp180_read_temp(bmp180);
+    bmp180->pressure    = bmp180_read_pressure(bmp180);
+
+    return true;
+}
+
+bool ICACHE_FLASH_ATTR bmp180_init(driver_params* params, driver_bus* bus)
+{
+    bmp180_data*    bmp180  = &params->bmp180;
+    i2c_data*       i2c     = &bus->params.i2c;
+
+    uint8_t         ack;
+    uint8_t         id      = 0;
 
     bmp180->initilized = false;
 
