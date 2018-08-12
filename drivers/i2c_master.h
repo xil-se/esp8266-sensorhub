@@ -14,8 +14,6 @@ typedef struct {
 
 #include "drivers/drivers.h"
 
-void i2c_master_init(driver_bus_params* params);
-
 #define i2c_master_wait    os_delay_us
 void i2c_master_stop(i2c_data* i2c);
 void i2c_master_start(i2c_data* i2c);

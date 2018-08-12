@@ -207,6 +207,24 @@ i2c_master_init(driver_bus_params* params)
 }
 
 /******************************************************************************
+ * FunctionName : i2c_master_print
+ * Description  : print data with specified function
+ * Parameters   :
+ * Returns      : NONE
+*******************************************************************************/
+bool ICACHE_FLASH_ATTR
+i2c_master_print(driver_bus_params* params, driver_print print, driver_print_data* data)
+{
+    i2c_data* i2c = &params->i2c;
+
+    print(data->data, data->index, data->i, "sda", &i2c->gpio_sda, sizeof(i2c->gpio_sda));
+    print(data->data, data->index, data->i, "scl", &i2c->gpio_scl, sizeof(i2c->gpio_scl));
+
+    return true;
+}
+
+
+/******************************************************************************
  * FunctionName : i2c_master_start
  * Description  : set i2c to send state
  * Parameters   : NONE
@@ -399,3 +417,10 @@ i2c_master_writeByte(i2c_data* i2c, uint8_t wrdata)
         i2c_master_wait(5);
     }
 }
+
+// Global variable with function pointers
+const driver_bus_type const bus_i2c = {
+    .init       = i2c_master_init,
+    .print      = i2c_master_print,
+};
+

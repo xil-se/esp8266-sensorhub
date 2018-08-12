@@ -41,13 +41,14 @@ static struct {
     esp_udp             udp;
 } network;
 
+// Data bus configuration
 static driver_bus       driver_buses[] = {
-    { .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, .init = i2c_master_init, },
-    { .params.i2c.gpio_sda =  5, .params.i2c.gpio_scl =  4, .init = i2c_master_init, },
+    { .bus = &bus_i2c, .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, },
 };
 
+// Sensor driver configuration
 static driver           driver_sensors[] = {
-    { .bus = &driver_buses[0], .sensor = &sensor_bmp180, },
+    { .sensor = &sensor_bmp180, .bus = &driver_buses[0], },
 };
 
 static struct {
@@ -105,7 +106,7 @@ static void ICACHE_FLASH_ATTR write_value(char* string, void* value, int size)
     }
 }
 
-static void ICACHE_FLASH_ATTR add_value(char* data, uint16_t* index, int i, const char* string, void* value, int size)
+static bool ICACHE_FLASH_ATTR add_value(char* data, uint16_t* index, int i, const char* string, void* value, int size)
 {
     int length;
 
@@ -132,13 +133,19 @@ static void ICACHE_FLASH_ATTR add_value(char* data, uint16_t* index, int i, cons
 
     data[*index] = '\n';
     (*index)++;
+
+    return true;
 }
 
 static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 {
-    uint16_t index;
-    uint8_t i;
-    uint16_t version;
+    uint16_t            index;
+    uint8_t             i;
+    uint16_t            version;
+    driver_print_data   print_data;
+
+    print_data.data = data;
+    print_data.index = &index;
 
     index = 0;
 
@@ -146,13 +153,13 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
     add_value(data, &index, 0, "version", &version, sizeof(version));
 
     for (i = 0; i < ARRAY_SIZE(driver_buses); i++) {
-        add_value(data, &index, i, "sda", &driver_buses[i].params.i2c.gpio_sda, sizeof(uint8_t));
-        add_value(data, &index, i, "scl", &driver_buses[i].params.i2c.gpio_scl, sizeof(uint8_t));
+        print_data.i = i;
+        driver_buses[i].bus->print(&driver_buses[i].params, add_value, &print_data);
     }
 
     for (i = 0; i < ARRAY_SIZE(driver_sensors); i++) {
-        add_value(data, &index, i, "temp", &driver_sensors[i].params.bmp180.temperature, sizeof(uint16_t));
-        add_value(data, &index, i, "pressure", &driver_sensors[i].params.bmp180.pressure, sizeof(int32_t));
+        print_data.i = i;
+        driver_sensors[i].sensor->print(&driver_sensors[i].params, add_value, &print_data);
     }
 
     if (index > *length)
@@ -293,7 +300,7 @@ void ICACHE_FLASH_ATTR user_init(void)
 
     // configure busses
     for (i = 0; i < ARRAY_SIZE(driver_buses); i++) {
-        driver_buses[i].init(&driver_buses[i].params);
+        driver_buses[i].bus->init(&driver_buses[i].params);
     }
 
     // initialize sensors

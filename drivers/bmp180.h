@@ -14,8 +14,6 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 #include "drivers/drivers.h"
 #include "drivers/i2c_master.h"
 
-extern const driver_sensor const sensor_bmp180;
-
 typedef struct {
     bool        initilized;
 
@@ -40,8 +38,5 @@ typedef struct {
     int16_t     temperature;
     int32_t     pressure;
 } bmp180_data;
-
-bool bmp180_init(driver_params* params, driver_bus* bus);
-bool bmp180_read(driver_params* params);
 
 #endif // BMP180_H
