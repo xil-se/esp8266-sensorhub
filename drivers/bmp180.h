@@ -14,10 +14,23 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 #include "drivers/drivers.h"
 #include "drivers/i2c_master.h"
 
+typedef enum {
+    bmp180_pressure_sampling_accuracy_ultra_low_power           = 0,
+    bmp180_pressure_sampling_accuracy_standard                  = 1,
+    bmp180_pressure_sampling_accuracy_high_resolution           = 2,
+    bmp180_pressure_sampling_accuracy_ultra_high_resolution     = 3,
+} bmp180_pressure_sampling_accuracy_t;
+
+
+
 typedef struct {
+    // Configuration
+    bmp180_pressure_sampling_accuracy_t     pressure_sampling_accuracy;
+
+    // Internal data
     bool        initilized;
 
-    // calibration data
+    // Calibration data
     int16_t     ac1;
     int16_t     ac2;
     int16_t     ac3;
@@ -31,10 +44,10 @@ typedef struct {
     int16_t     md;
     int32_t     b5;
 
-    // busses
+    // Busses
     i2c_data*   i2c;
 
-    // collected data
+    // Collected data
     int16_t     temperature;
     int32_t     pressure;
 } bmp180_data;

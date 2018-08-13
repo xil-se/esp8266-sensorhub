@@ -38,14 +38,6 @@ this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil T
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS2  13500   // us
 #define BMP180_CONVERSION_TIME_PRESSURE_OSS3  25500   // us
 
-#define BMP180_PRESSURE_SAMPLING_ACCURACY_ULTRA_LOW_POWER       0
-#define BMP180_PRESSURE_SAMPLING_ACCURACY_STANDARD              1
-#define BMP180_PRESSURE_SAMPLING_ACCURACY_HIGH_RESOLUTION       2
-#define BMP180_PRESSURE_SAMPLING_ACCURACY_ULTRA_HIGH_RESOLUTION 3
-
-// Pressure sampling accuracy mode to use
-#define BMP180_PRESSURE_SAMPLING_MODE BMP180_PRESSURE_SAMPLING_ACCURACY_HIGH_RESOLUTION
-
 static int32_t ICACHE_FLASH_ATTR read24_int(bmp180_data* bmp180, int reg, bool b24)
 {
     uint8_t ack;
@@ -149,19 +141,19 @@ int32_t ICACHE_FLASH_ATTR bmp180_read_pressure_raw(bmp180_data* bmp180, uint8_t 
     int     delay;
 
     switch (oss) {
-        case 0:
+        case bmp180_pressure_sampling_accuracy_ultra_low_power:
             reg = BMP180_PRESSURE_OSS0;
             delay = BMP180_CONVERSION_TIME_PRESSURE_OSS0;
             break;
-        case 1:
+        case bmp180_pressure_sampling_accuracy_standard:
             reg = BMP180_PRESSURE_OSS1;
             delay = BMP180_CONVERSION_TIME_PRESSURE_OSS1;
             break;
-        case 2:
+        case bmp180_pressure_sampling_accuracy_high_resolution:
             reg = BMP180_PRESSURE_OSS2;
             delay = BMP180_CONVERSION_TIME_PRESSURE_OSS2;
             break;
-        case 3:
+        case bmp180_pressure_sampling_accuracy_ultra_high_resolution:
             reg = BMP180_PRESSURE_OSS3;
             delay = BMP180_CONVERSION_TIME_PRESSURE_OSS3;
             break;
@@ -234,7 +226,7 @@ static int32_t ICACHE_FLASH_ATTR bmp180_read_pressure(bmp180_data* bmp180)
     uint32_t    b7;
     int32_t     p;
 
-    uint8_t     oss = BMP180_PRESSURE_SAMPLING_MODE;
+    uint8_t     oss = bmp180->pressure_sampling_accuracy;
 
     if (!bmp180->initilized) {
         return 0;

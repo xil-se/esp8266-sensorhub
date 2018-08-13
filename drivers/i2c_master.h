@@ -6,8 +6,11 @@
 // Global structs
 
 typedef struct {
+    // Configuration
     uint8_t gpio_sda;
     uint8_t gpio_scl;
+
+    // Internal data
     uint8_t sda_last;
     uint8_t scl_last;
 } i2c_data;
