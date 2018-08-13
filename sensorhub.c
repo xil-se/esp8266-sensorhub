@@ -44,11 +44,17 @@ static struct {
 // Data bus configuration
 static driver_bus       driver_buses[] = {
     { .bus = &bus_i2c, .params.i2c.gpio_sda = 13, .params.i2c.gpio_scl = 12, },
+    { .bus = &bus_i2c, .params.i2c.gpio_sda =  5, .params.i2c.gpio_scl =  4, },
 };
 
 // Sensor driver configuration
 static driver           driver_sensors[] = {
-    { .sensor = &sensor_bmp180, .bus = &driver_buses[0], },
+    { .bus = &driver_buses[0], .sensor = &sensor_bmp180,
+                               .params.bmp180.pressure_sampling_accuracy = bmp180_pressure_sampling_accuracy_high_resolution, },
+    { .bus = &driver_buses[1], .sensor = &sensor_bmp280,
+                               .params.bmp280.sdo_high = false,
+                               .params.bmp280.temp_oversampling = 1,
+                               .params.bmp280.pressure_oversampling = 2, },
 };
 
 static struct {
