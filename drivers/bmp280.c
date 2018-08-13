@@ -271,12 +271,13 @@ bool ICACHE_FLASH_ATTR bmp280_read(driver_params* params)
     return true;
 }
 
-bool ICACHE_FLASH_ATTR bmp280_print(driver_params* params, driver_print print, driver_print_data* data)
+bool ICACHE_FLASH_ATTR bmp280_print(driver_params* params, driver_print_data* print)
 {
     bmp280_data*    bmp280  = &params->bmp280;
 
-    print(data->data, data->index, data->i, "temp", &bmp280->temperature, sizeof(bmp280->temperature));
-    print(data->data, data->index, data->i, "pressure", &bmp280->pressure, sizeof(bmp280->pressure));
+    print->print_string(print->data, print->index, print->i, "driver", "bmp280");
+    print->print_value(print->data, print->index, print->i, "temp", &bmp280->temperature, sizeof(bmp280->temperature));
+    print->print_value(print->data, print->index, print->i, "pressure", &bmp280->pressure, sizeof(bmp280->pressure));
 }
 
 bool ICACHE_FLASH_ATTR bmp280_init(driver_params* params, driver_bus* bus)

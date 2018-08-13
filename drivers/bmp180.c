@@ -263,12 +263,13 @@ bool ICACHE_FLASH_ATTR bmp180_read(driver_params* params)
     return true;
 }
 
-bool ICACHE_FLASH_ATTR bmp180_print(driver_params* params, driver_print print, driver_print_data* data)
+bool ICACHE_FLASH_ATTR bmp180_print(driver_params* params, driver_print_data* print)
 {
     bmp180_data*    bmp180  = &params->bmp180;
 
-    print(data->data, data->index, data->i, "temp", &bmp180->temperature, sizeof(bmp180->temperature));
-    print(data->data, data->index, data->i, "pressure", &bmp180->pressure, sizeof(bmp180->pressure));
+    print->print_string(print->data, print->index, print->i, "driver", "bmp180");
+    print->print_value(print->data, print->index, print->i, "temp", &bmp180->temperature, sizeof(bmp180->temperature));
+    print->print_value(print->data, print->index, print->i, "pressure", &bmp180->pressure, sizeof(bmp180->pressure));
 
     return true;
 }

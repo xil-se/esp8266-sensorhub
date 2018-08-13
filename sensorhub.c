@@ -137,6 +137,37 @@ static bool ICACHE_FLASH_ATTR add_value(char* data, uint16_t* index, int i, cons
     return true;
 }
 
+static bool ICACHE_FLASH_ATTR add_string(char* data, uint16_t* index, int i, const char* string, const char* value)
+{
+    int length;
+
+    length = os_strlen(string);
+    memcpy(&data[*index], string, length);
+    (*index) += length;
+
+    data[*index] = '.';
+    (*index)++;
+
+    length = sizeof(uint8_t);
+    write_value(&data[*index], &i, length);
+    (*index) += length*2;
+
+    data[*index] = ':';
+    (*index)++;
+
+    data[*index] = ' ';
+    (*index)++;
+
+    length = os_strlen(value);
+    memcpy(&data[*index], value, length);
+    (*index) += length;
+
+    data[*index] = '\n';
+    (*index)++;
+
+    return true;
+}
+
 static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 {
     uint16_t            index;
@@ -146,6 +177,8 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 
     print_data.data = data;
     print_data.index = &index;
+    print_data.print_value = add_value;
+    print_data.print_string = add_string;
 
     index = 0;
 
@@ -154,12 +187,12 @@ static void ICACHE_FLASH_ATTR build_result(char* data, int* length)
 
     for (i = 0; i < ARRAY_SIZE(driver_buses); i++) {
         print_data.i = i;
-        driver_buses[i].bus->print(&driver_buses[i].params, add_value, &print_data);
+        driver_buses[i].bus->print(&driver_buses[i].params, &print_data);
     }
 
     for (i = 0; i < ARRAY_SIZE(driver_sensors); i++) {
         print_data.i = i;
-        driver_sensors[i].sensor->print(&driver_sensors[i].params, add_value, &print_data);
+        driver_sensors[i].sensor->print(&driver_sensors[i].params, &print_data);
     }
 
     if (index > *length)

@@ -213,12 +213,13 @@ i2c_master_init(driver_bus_params* params)
  * Returns      : NONE
 *******************************************************************************/
 bool ICACHE_FLASH_ATTR
-i2c_master_print(driver_bus_params* params, driver_print print, driver_print_data* data)
+i2c_master_print(driver_bus_params* params, driver_print_data* print)
 {
     i2c_data* i2c = &params->i2c;
 
-    print(data->data, data->index, data->i, "sda", &i2c->gpio_sda, sizeof(i2c->gpio_sda));
-    print(data->data, data->index, data->i, "scl", &i2c->gpio_scl, sizeof(i2c->gpio_scl));
+    print->print_string(print->data, print->index, print->i, "bus", "i2c");
+    print->print_value(print->data, print->index, print->i, "sda", &i2c->gpio_sda, sizeof(i2c->gpio_sda));
+    print->print_value(print->data, print->index, print->i, "scl", &i2c->gpio_scl, sizeof(i2c->gpio_scl));
 
     return true;
 }

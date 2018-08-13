@@ -17,19 +17,22 @@ typedef struct driver_bus           driver_bus;
 typedef union driver_params         driver_params;
 typedef struct driver               driver;
 
+typedef bool (*driver_print_value)(char* data, uint16_t* index, int i, const char* string, void* value, int size);
+typedef bool (*driver_print_string)(char* data, uint16_t* index, int i, const char* string, const char* value);
+
 typedef struct {
-    char*       data;
-    uint16_t*   index;
-    int         i;
+    char*               data;
+    uint16_t*           index;
+    int                 i;
+    driver_print_value  print_value;
+    driver_print_string print_string;
 } driver_print_data;
 
-typedef bool (*driver_print)(char* data, uint16_t* index, int i, const char* string, void* value, int size);
-
 typedef void (*driver_bus_init)(driver_bus_params* params);
-typedef bool (*driver_bus_print)(driver_bus_params* params, driver_print print, driver_print_data* data);
+typedef bool (*driver_bus_print)(driver_bus_params* params, driver_print_data* data);
 typedef bool (*driver_sensor_init)(driver_params* params, driver_bus* bus);
 typedef bool (*driver_sensor_read)(driver_params* params);
-typedef bool (*driver_sensor_print)(driver_params* params, driver_print print, driver_print_data* data);
+typedef bool (*driver_sensor_print)(driver_params* params, driver_print_data* data);
 
 typedef struct driver_bus_type {
     const driver_bus_init   init;
