@@ -1,6 +1,14 @@
+/*
+"THE BEER/MATE-WARE LICENSE":
+<xil@xil.se> wrote this file. As long as you retain this notice you
+can do whatever you want with this stuff. If we meet some day, and you think
+this stuff is worth it, you can buy us a ( > 0 ) beer/mate in return - The Xil TEAM
+*/
+
 #ifndef DRIVERS_H
 #define DRIVERS_H
 
+#include <stdint.h>
 #include <stdbool.h>
 
 // Forward declare driver_bus for the drivers
@@ -36,12 +44,14 @@ typedef struct driver_sensor {
 
 #include "drivers/i2c_master.h"
 #include "drivers/bmp180.h"
+#include "drivers/bmp280.h"
 
 // Global, constant variables for function pointers
 // Busses
 extern const driver_bus_type const bus_i2c;
 // Sensors
 extern const driver_sensor const sensor_bmp180;
+extern const driver_sensor const sensor_bmp280;
 
 // Data buses
 
@@ -59,6 +69,7 @@ struct driver_bus {
 
 union driver_params {
     bmp180_data             bmp180;
+    bmp280_data             bmp280;
 };
 
 struct driver {

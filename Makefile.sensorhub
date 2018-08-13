@@ -15,6 +15,7 @@ ELF = sensorhub
 # source files
 src = sensorhub.c \
       drivers/i2c_master.c \
+      drivers/bmp280.c \
       drivers/bmp180.c
 
 include common.mk
